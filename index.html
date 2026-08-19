@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ParticleRNG: Particle Drop Simulator</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <h1>ParticleRNG</h1>
+        <p class="subtitle">Particle Drop Simulator</p>
+
+        <div class="stats-panel">
+          <div class="stat-row">
+            <span>Times Gambled</span>
+            <strong id="timesGambled">0</strong>
+          </div>
+          <div class="stat-row">
+            <span>Rarest Rolled</span>
+            <strong id="rarestRolled">None</strong>
+          </div>
+          <div class="stat-row">
+            <span>Time Played</span>
+            <strong id="timePlayed">0s</strong>
+          </div>
+        </div>
+
+        <nav class="menu">
+          <button class="menu-button" data-view="home">Home</button>
+          <button class="menu-button" data-view="gamble">Research</button>
+          <button class="menu-button" data-view="inventory">Inventory</button>
+          <button class="menu-button" data-view="crafting">Crafting</button>
+          <button class="menu-button" data-view="deconstruct">Deconstruct</button>
+          <button class="menu-button" data-view="upgrades">Upgrades</button>
+          <button class="menu-button" data-view="automation">Automation</button>
+          <button class="menu-button" data-view="usables">Usables</button>
+          <button class="menu-button" data-view="buildings">Buildings</button>
+          <button class="menu-button prestige-button" data-view="prestige">Prestige</button>
+          <button class="menu-button" data-view="save">Save Progress</button>
+          <button class="menu-button danger" data-view="exit">Exit</button>
+        </nav>
+      </aside>
+
+      <main class="main-panel">
+        <div id="view-home" class="view active">
+          <h2>Mining Terminal</h2>
+          <p>
+            Welcome to the casino floor of the mine. Pull rare rewards, craft utility items,
+            and stack upgrades to chase the highest tiers.
+          </p>
+          <div class="status-grid">
+            <div class="status-card">
+              <h3>Active Buffs</h3>
+              <ul id="activeBuffsList" class="buff-list"></ul>
+            </div>
+            <div class="status-card">
+              <h3>Loot Tiers</h3>
+              <ul class="tier-list">
+                <li>1/2</li>
+                <li>1/4</li>
+                <li>1/8</li>
+                <li>1/16</li>
+                <li>1/32</li>
+                <li>1/64</li>
+                <li>1/128</li>
+                <li>1/256</li>
+                <li>1/512</li>
+                <li>1/1024</li>
+                <li>1/2048</li>
+                <li>1/4096</li>
+                <li>1/8192</li>
+                <li>1/16384</li>
+                <li>1/32768</li>
+                <li>1/65536</li>
+                <li>1/131072</li>
+                <li>1/262144</li>
+                <li>1/524288</li>
+                <li>1/1048576</li>
+                <li>1/2097152</li>
+                <li>1/4194304</li>
+                <li>1/8388608</li>
+                <li>1/16777216</li>
+                <li>1/33554432</li>
+                <li>1/67108864</li>
+                <li>1/134217728</li>
+                <li>1/268435456</li>
+                <li>1/536870912</li>
+                <li>1/1073741824</li>
+                <li>1/2147483648</li>
+                <li>1/4294967296</li>
+                <li>1/8589934592</li>
+                <li>1/17179869184</li>
+                <li>1/34359738368</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div id="view-gamble" class="view">
+          <div class="gamble-stage">
+            <div class="stage-background-particles" aria-hidden="true"></div>
+            <div class="summon-rim"></div>
+            <div class="summon-core">
+              <div class="summon-header">
+                <span id="reactorName" class="summon-tag">Beginner Arc Reactor</span>
+                <span id="summonStatus" class="summon-status">Idle</span>
+              </div>
+
+              <div class="machine-portal">
+                <div class="portal-background-particles" aria-hidden="true"></div>
+                <div class="portal-ring ring-one"></div>
+                <div class="portal-ring ring-two"></div>
+                <div class="portal-ring ring-three"></div>
+                <div class="portal-ring ring-four"></div>
+                <div class="portal-ring ring-five"></div>
+                <div class="portal-particles" aria-hidden="true"></div>
+                <button id="rollButton" class="portal-center" type="button" aria-label="Spin the machine">
+                  <div class="portal-glow"></div>
+                </button>
+              </div>
+
+              <div id="rollOutput" class="output-panel">Click the particle to begin research . . .
+              </div>
+            </div>
+          </div>
+
+          <div class="gambler-controls">
+            <label id="rollCountLabel" for="rollCount">Roll count</label>
+            <input id="rollCount" type="number" min="1" value="1" />
+          </div>
+        </div>
+
+        <div id="view-inventory" class="view">
+          <h2>Inventory</h2>
+          <div id="inventoryList" class="inventory-list"></div>
+        </div>
+
+        <div id="view-crafting" class="view">
+          <h2>Crafting Bench</h2>
+          <div id="craftingList" class="recipe-list"></div>
+        </div>
+
+        <div id="view-deconstruct" class="view">
+          <h2>Deconstruction Lab</h2>
+          <p class="view-intro">Break down higher-tier loot into a randomized bundle of smaller particle components.</p>
+          <div id="deconstructionList" class="recipe-list"></div>
+        </div>
+
+        <div id="view-upgrades" class="view">
+          <h2>Upgrade Lab</h2>
+          <div id="upgradeList" class="upgrade-list"></div>
+        </div>
+
+        <div id="view-buildings" class="view">
+          <h2>Buildings</h2>
+          <p class="view-intro">Construct reactor modules to multiply luck above every other boost and evolve the particle chamber.</p>
+          <div id="buildingList" class="building-list"></div>
+        </div>
+
+        <div id="view-automation" class="view">
+          <h2>Automation</h2>
+          <div id="automationPanel" class="status-card"></div>
+        </div>
+
+        <div id="view-usables" class="view">
+          <h2>Usables</h2>
+          <div id="usableList" class="usable-list"></div>
+        </div>
+
+        <div id="view-prestige" class="view">
+          <h2>Prestige</h2>
+          <div id="prestigePanel" class="prestige-panel"></div>
+        </div>
+
+        <div id="view-save" class="view">
+          <h2>Save Progress</h2>
+          <p>Your save is kept in the browser's local storage.</p>
+          <button id="saveNowButton" class="primary-button">Save now</button>
+        </div>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <div id="tutorialOverlay" class="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+      <div class="tutorial-roll-guide">
+        <span class="tutorial-kicker">Roll</span>
+        <h2 id="tutorialTitle">Click the particle</h2>
+        <p>Choose attempts below</p>
+      </div>
+      <div class="tutorial-sidebar-guide">
+        <span class="tutorial-kicker">Explore</span>
+        <ul>
+          <li><b>Home</b> · status</li>
+          <li><b>Gamble</b> · roll</li>
+          <li><b>Inventory</b> · materials</li>
+          <li><b>Crafting</b> · make items</li>
+          <li><b>Upgrades</b> · improve</li>
+          <li><b>Automation</b> · robots</li>
+        </ul>
+      </div>
+      <div class="tutorial-footer-guide">
+        <span>Saved as you play</span>
+        <button id="startTutorialButton" type="button">Begin</button>
+      </div>
+    </div>
+
+    <div id="prestigeConfirmOverlay" class="prestige-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="prestigeConfirmTitle">
+      <div class="prestige-confirm-card">
+        <span class="prestige-kicker">Reactor ascension</span>
+        <h2 id="prestigeConfirmTitle">Begin Prestige?</h2>
+        <p>You will reset this run and claim all three permanent rewards:</p>
+        <strong>+200% Luck · +3 Base Rolls · Faster Rolls</strong>
+        <p class="prestige-confirm-warning">Inventory, upgrades, buildings, robots, effects, and run statistics will return to zero.</p>
+        <div class="prestige-confirm-actions">
+          <button id="cancelPrestigeButton" type="button">Cancel</button>
+          <button id="confirmPrestigeButton" class="primary-button" type="button">Ascend</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="prestigeTransition" class="prestige-transition" aria-live="assertive">
+      <div class="prestige-transition-ring ring-a"></div>
+      <div class="prestige-transition-ring ring-b"></div>
+      <div class="prestige-transition-core"></div>
+      <div class="prestige-transition-copy">
+        <span>REACTOR ASCENSION</span>
+        <strong>PRESTIGE COMPLETE</strong>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>
