@@ -280,6 +280,12 @@ function defaultGameState() {
       chaos_orb_rolls: 0,
       fortune_wax_rolls: 0
     },
+    settings: {
+      particleQuality: 'high',
+      animationSpeed: 'normal',
+      reducedMotion: false,
+      screenShake: true
+    },
     goldenEvent: null
   };
 }
@@ -330,6 +336,17 @@ function loadGame() {
       if (key in activeEffects) activeEffects[key] = Number(value) || 0;
     }
 
+    const settings = {
+      particleQuality: ['low', 'medium', 'high'].includes(saved.settings?.particleQuality)
+        ? saved.settings.particleQuality
+        : 'high',
+      animationSpeed: ['slow', 'normal', 'fast'].includes(saved.settings?.animationSpeed)
+        ? saved.settings.animationSpeed
+        : 'normal',
+      reducedMotion: Boolean(saved.settings?.reducedMotion),
+      screenShake: saved.settings?.screenShake !== false
+    };
+
     const savedEvent = saved.goldenEvent;
     const goldenEvent = savedEvent && GOLDEN_EVENT_TYPES.some((event) => event.name === savedEvent.name)
       ? {
@@ -361,6 +378,7 @@ function loadGame() {
       robots,
       upgrades,
       activeEffects,
+      settings,
       goldenEvent
     };
   } catch (error) {
@@ -407,6 +425,8 @@ function updateStats() {
   document.getElementById('timesGambled').textContent = gameState.timesGambled;
   document.getElementById('rarestRolled').textContent = spinInProgress ? 'Revealing...' : gameState.rarestRolled;
   document.getElementById('timePlayed').textContent = formatPlayTime(getTimePlayedSeconds());
+  const luckRange = getTotalLuckMultiplierRange();
+  document.getElementById('totalLuck').textContent = `x${formatLuckMultiplier(luckRange.minimum)}-${formatLuckMultiplier(luckRange.maximum)}`;
 
   const buffList = document.getElementById('activeBuffsList');
   const entries = [
@@ -513,6 +533,19 @@ function setView(viewName) {
   views.forEach((view) => {
     view.classList.toggle('active', view.id === `view-${viewName}`);
   });
+}
+
+function applySettings() {
+  const settings = gameState.settings;
+  document.body.dataset.particleQuality = settings.particleQuality;
+  document.body.dataset.animationSpeed = settings.animationSpeed;
+  document.body.classList.toggle('reduced-motion', settings.reducedMotion);
+  document.body.classList.toggle('screen-shake-disabled', !settings.screenShake);
+
+  document.getElementById('particleQualitySetting').value = settings.particleQuality;
+  document.getElementById('animationSpeedSetting').value = settings.animationSpeed;
+  document.getElementById('reducedMotionSetting').checked = settings.reducedMotion;
+  document.getElementById('screenShakeSetting').checked = settings.screenShake;
 }
 
 // Shows the first-run tutorial for players who have not started a run.
@@ -645,6 +678,35 @@ function getReactorLuckMultiplier() {
   }, 1);
 }
 
+// Calculates the effective luck modifier for one tier using the same rules as rolls.
+function getTierLuckMultiplier(tier) {
+  const upgradeLuck = 1 + (gameState.upgrades.luck || 0) * 0.015;
+  const jackpotLuck = ['1/32', '1/64', '1/128', '1/256', '1/512'].includes(tier)
+    ? 1 + (gameState.upgrades.jackpot || 0) * 0.25
+    : 1;
+  const prestigeLuck = 1 + (gameState.prestigeLuckRewards || 0) * 2;
+  const potionLuck = gameState.activeEffects.luck_potion_rolls > 0 ? 3 : 1;
+  const eventLuck = isGoldenEventActive() ? getGoldenEventType().multiplier : 1;
+  const rarityLuck = Math.pow(upgradeLuck, getTierRarity(tier));
+
+  return rarityLuck * jackpotLuck * prestigeLuck * potionLuck * eventLuck * getReactorLuckMultiplier();
+}
+
+// Returns the effective multiplier range across all available loot tiers.
+function getTotalLuckMultiplierRange() {
+  const multipliers = Object.keys(TIER_WEIGHTS).map(getTierLuckMultiplier);
+  return {
+    minimum: Math.min(...multipliers),
+    maximum: Math.max(...multipliers)
+  };
+}
+
+function formatLuckMultiplier(multiplier) {
+  if (multiplier < 1000) return multiplier.toFixed(2);
+  if (multiplier < 1000000) return Math.round(multiplier).toLocaleString();
+  return multiplier.toExponential(2).replace('e+', 'e');
+}
+
 // Returns the combined level of all reactor buildings.
 function getReactorBuildingLevel() {
   return Object.values(gameState.buildings).reduce((total, level) => total + level, 0);
@@ -669,21 +731,10 @@ function getRollDelay() {
 // Builds weighted tier odds from upgrades, effects, prestige, and buildings.
 function getTierWeights() {
   const weights = { ...TIER_WEIGHTS };
-  const luck = gameState.upgrades.luck || 0;
-  const jackpot = gameState.upgrades.jackpot || 0;
-  const active = gameState.activeEffects;
 
   const boosted = {};
   for (const [tier, base] of Object.entries(weights)) {
-    const rarity = getTierRarity(tier);
-    let modifier = Math.pow(1 + luck * 0.025, rarity) * (1 + gameState.prestigeLuckRewards * 2);
-    if (active.luck_potion_rolls > 0) modifier *= 3;
-    if (isGoldenEventActive()) modifier *= getGoldenEventType().multiplier;
-    if (['1/32', '1/64', '1/128', '1/256', '1/512'].includes(tier)) {
-      modifier *= 1 + jackpot * 0.25;
-    }
-    modifier *= getReactorLuckMultiplier();
-    boosted[tier] = Math.max(1, Math.round(base * modifier));
+    boosted[tier] = Math.max(1, Math.round(base * getTierLuckMultiplier(tier)));
   }
   return boosted;
 }
@@ -1394,7 +1445,9 @@ function getExplosionColor(glowClass) {
 
 // Spawns animated particles for the summon explosion.
 function createBurstParticles(stage, rarity, color, duration) {
-  const particleCount = 12 + rarity * 8;
+  if (gameState.settings.reducedMotion || gameState.settings.particleQuality === 'low') return;
+  const qualityMultiplier = gameState.settings.particleQuality === 'medium' ? 0.55 : 1;
+  const particleCount = Math.max(4, Math.round((12 + rarity * 8) * qualityMultiplier));
   const distance = 240 + rarity * 70;
 
   for (let index = 0; index < particleCount; index++) {
@@ -1738,14 +1791,32 @@ menuButtons.forEach((button) => {
       saveGame();
       return;
     }
-    if (viewName === 'exit') {
-      saveGame();
-      showToast('Progress saved. You can safely close the tab.');
-      setView('home');
-      return;
-    }
     setView(viewName);
   });
+});
+
+document.getElementById('particleQualitySetting').addEventListener('change', (event) => {
+  gameState.settings.particleQuality = event.target.value;
+  applySettings();
+  saveGame();
+});
+
+document.getElementById('animationSpeedSetting').addEventListener('change', (event) => {
+  gameState.settings.animationSpeed = event.target.value;
+  applySettings();
+  saveGame();
+});
+
+document.getElementById('reducedMotionSetting').addEventListener('change', (event) => {
+  gameState.settings.reducedMotion = event.target.checked;
+  applySettings();
+  saveGame();
+});
+
+document.getElementById('screenShakeSetting').addEventListener('change', (event) => {
+  gameState.settings.screenShake = event.target.checked;
+  applySettings();
+  saveGame();
 });
 
 document.getElementById('rollButton').addEventListener('click', async () => {
@@ -1798,6 +1869,7 @@ document.getElementById('startTutorialButton').addEventListener('click', () => {
   document.getElementById('rollButton').focus();
 });
 
+applySettings();
 renderAll();
 setView(gameState.timesGambled === 0 ? 'gamble' : 'home');
 showTutorialIfNeeded();

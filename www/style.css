@@ -266,6 +266,102 @@ strong,
   border-color: rgba(248, 113, 113, 0.5);
 }
 
+.settings-panel {
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 18px;
+  background: rgba(19, 29, 45, 0.82);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.setting-row > span {
+  display: grid;
+  gap: 5px;
+}
+
+.setting-row strong {
+  color: var(--text);
+}
+
+.setting-row small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.setting-row select {
+  min-width: 120px;
+  padding: 8px 10px;
+  color: var(--text);
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.setting-toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent-strong);
+}
+
+body[data-particle-quality="low"] .stage-background-particles,
+body[data-particle-quality="low"] .portal-background-particles,
+body[data-particle-quality="low"] .portal-particles {
+  display: none;
+}
+
+body[data-particle-quality="medium"] .portal-background-particles::before,
+body[data-particle-quality="medium"] .portal-background-particles::after,
+body[data-particle-quality="medium"] .stage-background-particles::after {
+  opacity: 0.45;
+}
+
+body[data-animation-speed="slow"] {
+  --settings-animation-scale: 1.35;
+}
+
+body[data-animation-speed="normal"] {
+  --settings-animation-scale: 1;
+}
+
+body[data-animation-speed="fast"] {
+  --settings-animation-scale: 0.7;
+}
+
+body[data-animation-speed="slow"] .stage-background-particles,
+body[data-animation-speed="slow"] .portal-background-particles {
+  animation-duration: calc(12s * var(--settings-animation-scale));
+}
+
+body[data-animation-speed="fast"] .stage-background-particles,
+body[data-animation-speed="fast"] .portal-background-particles {
+  animation-duration: calc(12s * var(--settings-animation-scale));
+}
+
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+body.reduced-motion .stage-background-particles,
+body.reduced-motion .portal-background-particles,
+body.reduced-motion .portal-particles,
+body.reduced-motion .burst-particle {
+  display: none;
+}
+
 .menu-button.prestige-button {
   color: #fde68a;
   border-color: rgba(251, 191, 36, 0.46);
@@ -1893,6 +1989,11 @@ body.global-summon::after {
   mix-blend-mode: screen;
   opacity: 0.15;
   animation: globalColorBreath 1.5s ease-in-out infinite alternate;
+}
+
+body.screen-shake-disabled.global-summon::after {
+  opacity: 0.06;
+  animation: none;
 }
 
 body.golden-event-active::before {
