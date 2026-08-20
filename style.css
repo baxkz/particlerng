@@ -222,6 +222,38 @@ strong,
   transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
+.menu-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.menu-button::before {
+  display: inline-grid;
+  flex: 0 0 20px;
+  place-items: center;
+  color: var(--accent);
+  content: attr(data-icon);
+  font-size: 1.05rem;
+  line-height: 1;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.menu-button:hover::before,
+.menu-button:focus-visible::before {
+  color: #ffffff;
+  transform: scale(1.12);
+}
+
+.menu-button.prestige-button::before {
+  color: var(--gold);
+}
+
+.menu-button.danger::before {
+  color: var(--danger);
+}
+
 .menu-button:hover,
 .primary-button:hover,
 .secondary-button:hover,
@@ -264,6 +296,20 @@ h2 {
   margin-top: 0;
   margin-bottom: 18px;
   font-size: 2.1rem;
+}
+
+h2[data-icon]::before,
+h3[data-icon]::before {
+  display: inline-block;
+  margin-right: 10px;
+  color: var(--accent);
+  content: attr(data-icon);
+  font-size: 0.78em;
+  transform: translateY(-0.06em);
+}
+
+h3[data-icon]::before {
+  color: var(--gold);
 }
 
 .view-intro {
@@ -386,6 +432,32 @@ h2 {
 .prestige-rewards {
   display: grid;
   gap: 12px;
+}
+
+.prestige-reset-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  color: var(--muted);
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  border-radius: 10px;
+  background: rgba(80, 24, 30, 0.16);
+}
+
+.prestige-reset-button {
+  flex: 0 0 auto;
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(127, 29, 29, 0.24);
+}
+
+@media (max-width: 560px) {
+  .prestige-reset-zone {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 
 .prestige-progress-header {
@@ -558,13 +630,32 @@ h2 {
   display: none;
   overflow: hidden;
   place-items: center;
-  background: radial-gradient(circle, rgba(251, 191, 36, 0.24), rgba(7, 12, 28, 0.96) 42%, #02040b 78%);
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.34), rgba(7, 12, 28, 0.96) 42%, #02040b 78%);
   pointer-events: auto;
 }
 
 .prestige-transition.active {
   display: grid;
-  animation: prestigeScreenFlash 1.8s ease-in-out both;
+  animation: prestigeScreenFlash 2.6s ease-in-out both;
+}
+
+.prestige-transition::before {
+  position: absolute;
+  inset: -35%;
+  content: '';
+  background: conic-gradient(from 0deg, transparent 0 12%, rgba(251, 191, 36, 0.3) 18%, transparent 27% 42%, rgba(34, 211, 238, 0.22) 49%, transparent 58% 78%, rgba(251, 191, 36, 0.28) 86%, transparent 94%);
+  mix-blend-mode: screen;
+  animation: prestigeFieldSpin 2.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.prestige-transition::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: #fff7cc;
+  opacity: 0;
+  pointer-events: none;
+  animation: prestigeAscensionFlash 2.6s ease-out both;
 }
 
 .prestige-transition-ring {
@@ -578,13 +669,22 @@ h2 {
 }
 
 .prestige-transition-ring.ring-a {
-  animation: prestigeRingBurst 1.8s ease-out both;
+  animation: prestigeRingBurst 2.6s ease-out both;
 }
 
 .prestige-transition-ring.ring-b {
   border-color: var(--gold);
   box-shadow: 0 0 30px var(--gold), inset 0 0 30px var(--gold);
-  animation: prestigeRingBurst 1.8s 180ms ease-out both;
+  animation: prestigeRingBurst 2.6s 180ms ease-out both;
+}
+
+.prestige-transition-ring.ring-c {
+  width: 30vmin;
+  height: 30vmin;
+  border-color: #ffffff;
+  border-style: dashed;
+  box-shadow: 0 0 38px rgba(255, 255, 255, 0.8), inset 0 0 30px var(--gold);
+  animation: prestigeRingOrbit 2.6s 320ms ease-in-out both;
 }
 
 .prestige-transition-core {
@@ -593,8 +693,35 @@ h2 {
   border-radius: 50%;
   background: radial-gradient(circle, #ffffff 0 8%, var(--gold) 24%, var(--accent-strong) 52%, transparent 74%);
   box-shadow: 0 0 40px #ffffff, 0 0 100px var(--gold), 0 0 180px var(--accent-strong);
-  animation: prestigeCorePulse 1.8s ease-in-out both;
+  animation: prestigeCorePulse 2.6s ease-in-out both;
 }
+
+.prestige-transition-sparks {
+  position: absolute;
+  width: 8vmin;
+  height: 8vmin;
+  animation: prestigeSparkOrbit 2.6s ease-out both;
+}
+
+.prestige-transition-sparks i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.7vmin;
+  height: 8vmin;
+  background: linear-gradient(transparent, #fff7cc, var(--gold), transparent);
+  box-shadow: 0 0 14px var(--gold);
+  transform-origin: 50% 0;
+}
+
+.prestige-transition-sparks i:nth-child(1) { transform: rotate(0deg); }
+.prestige-transition-sparks i:nth-child(2) { transform: rotate(45deg); }
+.prestige-transition-sparks i:nth-child(3) { transform: rotate(90deg); }
+.prestige-transition-sparks i:nth-child(4) { transform: rotate(135deg); }
+.prestige-transition-sparks i:nth-child(5) { transform: rotate(180deg); }
+.prestige-transition-sparks i:nth-child(6) { transform: rotate(225deg); }
+.prestige-transition-sparks i:nth-child(7) { transform: rotate(270deg); }
+.prestige-transition-sparks i:nth-child(8) { transform: rotate(315deg); }
 
 .prestige-transition-copy {
   position: relative;
@@ -604,7 +731,7 @@ h2 {
   color: #ffffff;
   text-align: center;
   text-shadow: 0 0 20px #ffffff, 0 0 55px var(--gold);
-  animation: prestigeCopyReveal 1.8s ease-out both;
+  animation: prestigeCopyReveal 2.6s ease-out both;
 }
 
 .prestige-transition-copy span {
@@ -623,7 +750,7 @@ body.prestige-transition-active button {
 
 @keyframes prestigeScreenFlash {
   0%, 100% { opacity: 0; }
-  18%, 72% { opacity: 1; }
+  12%, 84% { opacity: 1; }
 }
 
 @keyframes prestigeRingBurst {
@@ -632,17 +759,43 @@ body.prestige-transition-active button {
   100% { opacity: 0; transform: scale(12) rotate(180deg); }
 }
 
+@keyframes prestigeRingOrbit {
+  0% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: scale(2.6) rotate(540deg); }
+}
+
+@keyframes prestigeFieldSpin {
+  from { opacity: 0; transform: rotate(-90deg) scale(0.7); }
+  20% { opacity: 1; }
+  to { opacity: 0; transform: rotate(180deg) scale(1.25); }
+}
+
+@keyframes prestigeSparkOrbit {
+  from { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  22% { opacity: 1; }
+  to { opacity: 0; transform: scale(5) rotate(180deg); }
+}
+
+@keyframes prestigeAscensionFlash {
+  0%, 66%, 100% { opacity: 0; }
+  70% { opacity: 0.72; }
+  76% { opacity: 0; }
+}
+
 @keyframes prestigeCorePulse {
   0% { transform: scale(0.2); opacity: 0; }
-  25% { transform: scale(1.1); opacity: 1; }
-  65% { transform: scale(1.8); opacity: 1; }
+  20% { transform: scale(0.75); opacity: 1; }
+  46% { transform: scale(1.25); opacity: 1; }
+  62% { transform: scale(2.2); opacity: 1; }
+  76% { transform: scale(1.6); opacity: 1; }
   100% { transform: scale(0.3); opacity: 0; }
 }
 
 @keyframes prestigeCopyReveal {
-  0%, 22% { opacity: 0; transform: scale(0.7); }
-  40%, 72% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.12); }
+  0%, 24% { opacity: 0; transform: scale(0.7); }
+  42%, 82% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.16); }
 }
 
 #automationPanel {
@@ -1490,8 +1643,116 @@ body.prestige-transition-active button {
   overflow-wrap: break-word;
 }
 
+.golden-signal {
+  position: fixed;
+  left: var(--signal-x, 50vw);
+  top: var(--signal-y, 42vh);
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  width: clamp(62px, 8vw, 90px);
+  aspect-ratio: 1;
+  padding: 10px;
+  color: #fff7cc;
+  background: radial-gradient(circle at 35% 30%, #fff7cc 0 5%, #fbbf24 20%, #a85d08 58%, #412405 100%);
+  border: 2px solid #fff1a8;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.12), 0 0 26px rgba(251, 191, 36, 0.75), 0 0 70px rgba(245, 158, 11, 0.42);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  animation: goldenSignalAppear 280ms ease-out both, goldenSignalPulse 1.05s ease-in-out 280ms infinite alternate, goldenSignalDrift 3.2s ease-in-out infinite;
+}
+
+.golden-signal-disappearing {
+  animation: goldenSignalDisappear 320ms ease-in forwards;
+  pointer-events: none;
+}
+
+.golden-signal::before,
+.golden-signal::after {
+  position: absolute;
+  inset: -12px;
+  content: '';
+  border: 1px solid rgba(253, 224, 71, 0.62);
+  border-radius: 50%;
+  animation: goldenSignalOrbit 3.4s linear infinite;
+}
+
+.golden-signal::after {
+  inset: -22px;
+  border-color: rgba(251, 191, 36, 0.25);
+  animation-direction: reverse;
+  animation-duration: 5.2s;
+}
+
+.golden-signal[hidden] { display: none; }
+
+.golden-signal:hover {
+  border-color: #ffffff;
+  filter: brightness(1.18);
+}
+
+.golden-signal-icon {
+  position: relative;
+  z-index: 1;
+  color: #7c4a03;
+  font-size: clamp(1.7rem, 4vw, 3rem);
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.golden-signal-copy {
+  position: absolute;
+  top: calc(100% + 14px);
+  left: 50%;
+  display: grid;
+  z-index: 4;
+  gap: 3px;
+  min-width: 180px;
+  padding: 7px 10px;
+  color: #fff7cc;
+  text-align: center;
+  background: rgba(26, 17, 4, 0.92);
+  border: 1px solid rgba(251, 191, 36, 0.58);
+  border-radius: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -4px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.golden-signal:hover .golden-signal-copy,
+.golden-signal:focus-visible .golden-signal-copy { opacity: 1; transform: translate(-50%, 0); }
+
+.golden-signal-copy small { color: #fde68a; }
+
+@keyframes goldenSignalPulse {
+  from { box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.12), 0 0 20px rgba(251, 191, 36, 0.58), 0 0 54px rgba(245, 158, 11, 0.3); }
+  to { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0.2), 0 0 34px rgba(251, 191, 36, 0.9), 0 0 84px rgba(245, 158, 11, 0.55); }
+}
+
+@keyframes goldenSignalAppear {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.55); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes goldenSignalDisappear {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -50%) scale(0.55); }
+}
+
+@keyframes goldenSignalDrift {
+  0%, 100% { margin-top: 0; }
+  50% { margin-top: -7px; }
+}
+
+@keyframes goldenSignalOrbit {
+  from { transform: rotate(0deg) scaleX(1); }
+  to { transform: rotate(360deg) scaleX(1); }
+}
+
 .output-panel::before {
-  content: "root@summon-terminal:~$";
+  content: "root@research-terminal:~$";
   display: block;
   margin-bottom: 8px;
   color: #4ade80;
@@ -1632,6 +1893,27 @@ body.global-summon::after {
   mix-blend-mode: screen;
   opacity: 0.15;
   animation: globalColorBreath 1.5s ease-in-out infinite alternate;
+}
+
+body.golden-event-active::before {
+  position: fixed;
+  inset: 0;
+  content: '';
+  z-index: 700;
+  pointer-events: none;
+  background: rgba(245, 158, 11, 0.045);
+  mix-blend-mode: screen;
+  animation: goldenEventTint 2.4s ease-in-out infinite alternate;
+}
+
+body.golden-event-active .app-shell {
+  border-color: rgba(251, 191, 36, 0.42);
+  box-shadow: 0 0 34px rgba(251, 191, 36, 0.12), 0 20px 70px var(--shadow);
+}
+
+@keyframes goldenEventTint {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
 }
 
 body.global-summon button {
@@ -1977,6 +2259,23 @@ body.global-summon.tier-finality::after { background: #ffffff; opacity: 0.3; ani
 .item-name {
   font-weight: 700;
 }
+
+.inventory-row .item-name.tier-common { color: #d1d5db; }
+.inventory-row .item-name.tier-uncommon { color: #86efac; }
+.inventory-row .item-name.tier-rare { color: #93c5fd; }
+.inventory-row .item-name.tier-epic { color: #d8b4fe; }
+.inventory-row .item-name.tier-legendary { color: #fcd34d; text-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
+.inventory-row .item-name.tier-mythic { color: #f9a8d4; text-shadow: 0 0 10px rgba(251, 64, 129, 0.7); }
+.inventory-row .item-name.tier-cosmic { color: #c4b5fd; text-shadow: 0 0 12px rgba(167, 139, 250, 0.85); }
+.inventory-row .item-name.tier-transcendent { color: #a5f3fc; text-shadow: 0 0 16px rgba(34, 211, 238, 0.95); }
+.inventory-row .item-name.tier-omniversal { color: #f9a8d4; text-shadow: 0 0 18px rgba(244, 114, 182, 1); }
+.inventory-row .item-name.tier-singularity { color: #fdba74; text-shadow: 0 0 20px rgba(249, 115, 22, 1); }
+.inventory-row .item-name.tier-apex { color: #ffffff; text-shadow: 0 0 24px #ffffff, 0 0 42px #fef08a; }
+.inventory-row .item-name.tier-absolute { color: #fef08a; text-shadow: 0 0 28px #f59e0b, 0 0 48px #ffffff; }
+.inventory-row .item-name.tier-reality { color: #fda4af; text-shadow: 0 0 30px #fb7185, 0 0 54px #c084fc; }
+.inventory-row .item-name.tier-omniscient { color: #ddd6fe; text-shadow: 0 0 32px #818cf8, 0 0 60px #ffffff; }
+.inventory-row .item-name.tier-infinite { color: #a5f3fc; text-shadow: 0 0 36px #22d3ee, 0 0 68px #f472b6; }
+.inventory-row .item-name.tier-finality { color: #ffffff; text-shadow: 0 0 42px #ffffff, 0 0 80px #fef08a, 0 0 110px #c084fc; }
 
 .item-count {
   text-align: right;

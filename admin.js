@@ -1,7 +1,13 @@
-const ADMIN_MODE = false; // Set to true to enable the admin test panel
+const ADMIN_MODE = false;
+let adminPanel = null;
 
-if (ADMIN_MODE) {
-  const adminPanel = document.createElement('aside');
+function activateAdminPanel() {
+  if (adminPanel) {
+    adminPanel.remove();
+    adminPanel = null;
+    return false;
+  }
+  adminPanel = document.createElement('aside');
   adminPanel.id = 'adminPanel';
   adminPanel.innerHTML = `
     <div class="admin-panel-header">
@@ -11,6 +17,7 @@ if (ADMIN_MODE) {
     <button type="button" data-admin="materials">Grant test materials</button>
     <button type="button" data-admin="upgrades">Max upgrades</button>
     <button type="button" data-admin="rolls">Set max roll count</button>
+    <button type="button" data-admin="spawn-surge">Spawn Golden Surge</button>
     <button type="button" data-admin="guarantee-cosmic">Guarantee 1/131072 next roll</button>
     <button type="button" data-admin="preview-animations">Preview every summon animation</button>
     <label>
@@ -77,6 +84,10 @@ if (ADMIN_MODE) {
       showToast(`Admin: roll count set to maximum (${maxRolls}).`);
     }
 
+    if (action === 'spawn-surge') {
+      spawnGoldenEvent('Golden Surge', true);
+    }
+
     if (action === 'guarantee-cosmic') {
       guaranteeNextTier('1/131072');
       showToast('Admin: next roll guaranteed at 1/131072.');
@@ -122,4 +133,19 @@ if (ADMIN_MODE) {
     saveGame();
     refreshGame();
   });
+
+  return true;
 }
+
+if (ADMIN_MODE) activateAdminPanel();
+
+let secretCommandBuffer = '';
+document.addEventListener('keydown', (event) => {
+  if (event.target.matches('input, textarea, select')) return;
+  secretCommandBuffer = `${secretCommandBuffer}${event.key.toLowerCase()}`.slice(-14);
+  if (secretCommandBuffer.endsWith('particle-admin')) {
+    const activated = activateAdminPanel();
+    showToast(activated ? 'Admin panel activated.' : 'Admin panel disabled.');
+    secretCommandBuffer = '';
+  }
+});

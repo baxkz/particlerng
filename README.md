@@ -1,2 +1,0 @@
-# particlerng
-rng game (wip)

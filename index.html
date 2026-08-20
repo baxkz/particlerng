@@ -28,35 +28,35 @@
         </div>
 
         <nav class="menu">
-          <button class="menu-button" data-view="home">Home</button>
-          <button class="menu-button" data-view="gamble">Research</button>
-          <button class="menu-button" data-view="inventory">Inventory</button>
-          <button class="menu-button" data-view="crafting">Crafting</button>
-          <button class="menu-button" data-view="deconstruct">Deconstruct</button>
-          <button class="menu-button" data-view="upgrades">Upgrades</button>
-          <button class="menu-button" data-view="automation">Automation</button>
-          <button class="menu-button" data-view="usables">Usables</button>
-          <button class="menu-button" data-view="buildings">Buildings</button>
-          <button class="menu-button prestige-button" data-view="prestige">Prestige</button>
-          <button class="menu-button" data-view="save">Save Progress</button>
-          <button class="menu-button danger" data-view="exit">Exit</button>
+          <button class="menu-button" data-icon="⌂" data-view="home">Home</button>
+          <button class="menu-button" data-icon="◉" data-view="gamble">Research</button>
+          <button class="menu-button" data-icon="▦" data-view="inventory">Inventory</button>
+          <button class="menu-button" data-icon="⚒" data-view="crafting">Crafting</button>
+          <button class="menu-button" data-icon="↯" data-view="deconstruct">Deconstruct</button>
+          <button class="menu-button" data-icon="⬡" data-view="upgrades">Upgrades</button>
+          <button class="menu-button" data-icon="♙" data-view="automation">Automation</button>
+          <button class="menu-button" data-icon="◈" data-view="usables">Usables</button>
+          <button class="menu-button" data-icon="⌘" data-view="buildings">Buildings</button>
+          <button class="menu-button prestige-button" data-icon="✦" data-view="prestige">Prestige</button>
+          <button class="menu-button" data-icon="⇩" data-view="save">Save Progress</button>
+          <button class="menu-button danger" data-icon="×" data-view="exit">Exit</button>
         </nav>
       </aside>
 
       <main class="main-panel">
         <div id="view-home" class="view active">
-          <h2>Mining Terminal</h2>
+          <h2 data-icon="⌁">Mining Terminal</h2>
           <p>
             Welcome to the casino floor of the mine. Pull rare rewards, craft utility items,
             and stack upgrades to chase the highest tiers.
           </p>
           <div class="status-grid">
-            <div class="status-card">
-              <h3>Active Buffs</h3>
+              <div class="status-card">
+                <h3 data-icon="✦">Active Buffs</h3>
               <ul id="activeBuffsList" class="buff-list"></ul>
             </div>
             <div class="status-card">
-              <h3>Loot Tiers</h3>
+              <h3 data-icon="◌">Loot Tiers</h3>
               <ul class="tier-list">
                 <li>1/2</li>
                 <li>1/4</li>
@@ -182,6 +182,14 @@
       </main>
     </div>
 
+    <button id="goldenCookie" class="golden-signal" type="button" hidden aria-label="Collect temporary signal boost">
+      <span class="golden-signal-icon" aria-hidden="true">+</span>
+      <span class="golden-signal-copy">
+        <strong id="goldenCookieTitle">Signal detected</strong>
+        <small id="goldenCookieDescription">Click to collect the event</small>
+      </span>
+    </button>
+
     <div id="toast" class="toast" aria-live="polite"></div>
 
     <div id="tutorialOverlay" class="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
@@ -212,7 +220,7 @@
         <span class="prestige-kicker">Reactor ascension</span>
         <h2 id="prestigeConfirmTitle">Begin Prestige?</h2>
         <p>You will reset this run and claim all three permanent rewards:</p>
-        <strong>+200% Luck · +3 Base Rolls · Faster Rolls</strong>
+        <strong>+400% Luck · +6 Base Rolls · Faster Rolls</strong>
         <p class="prestige-confirm-warning">Inventory, upgrades, buildings, robots, effects, and run statistics will return to zero.</p>
         <div class="prestige-confirm-actions">
           <button id="cancelPrestigeButton" type="button">Cancel</button>
@@ -224,6 +232,10 @@
     <div id="prestigeTransition" class="prestige-transition" aria-live="assertive">
       <div class="prestige-transition-ring ring-a"></div>
       <div class="prestige-transition-ring ring-b"></div>
+      <div class="prestige-transition-ring ring-c"></div>
+      <div class="prestige-transition-sparks" aria-hidden="true">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
       <div class="prestige-transition-core"></div>
       <div class="prestige-transition-copy">
         <span>REACTOR ASCENSION</span>

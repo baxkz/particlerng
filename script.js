@@ -149,8 +149,13 @@ const BUILDING_CATALOG = {
 const ROBOT_SLOT_COUNT = 10;
 const ROBOT_MAX_LEVEL = 30;
 const ROBOT_BUY_COST = { 'Circuit Board': 5, 'Quantum Battery': 2, 'Particle Lens': 1, Diamond: 3 };
-const PRESTIGE_MAX = 10;
-const PRESTIGE_ITEM_REQUIREMENT = 1000;
+const PRESTIGE_MAX = 25;
+const PRESTIGE_ITEM_REQUIREMENT = 200;
+const ECONOMY_COST_MULTIPLIER = 0.2;
+const GOLDEN_EVENT_TYPES = [
+  { name: 'Golden Surge', description: '7x luck for 90 seconds + 10 max rolls', multiplier: 7, duration: 90, maxRollBonus: 10 },
+  { name: '777 Flash', description: '777x luck for 7 seconds + 77 max rolls', multiplier: 777, duration: 7, maxRollBonus: 77 }
+];
 
 // Creates the initial empty robot roster.
 function defaultRobots() {
@@ -238,6 +243,7 @@ let automationTimers = [];
 let automationNextAt = null;
 let animationPreviewInProgress = false;
 let prestigeInProgress = false;
+let goldenEventDismissTimer = null;
 const RARE_OVERLAY_THRESHOLD = 11;
 
 const menuButtons = [...document.querySelectorAll('.menu-button')];
@@ -273,7 +279,8 @@ function defaultGameState() {
       energy_drink_rolls: 0,
       chaos_orb_rolls: 0,
       fortune_wax_rolls: 0
-    }
+    },
+    goldenEvent: null
   };
 }
 
@@ -323,6 +330,20 @@ function loadGame() {
       if (key in activeEffects) activeEffects[key] = Number(value) || 0;
     }
 
+    const savedEvent = saved.goldenEvent;
+    const goldenEvent = savedEvent && GOLDEN_EVENT_TYPES.some((event) => event.name === savedEvent.name)
+      ? {
+        name: String(savedEvent.name),
+        active: Boolean(savedEvent.active),
+        expiresAt: Number(savedEvent.expiresAt) || 0,
+        spawnedAt: Number(savedEvent.spawnedAt) || 0,
+        position: {
+          x: Math.min(88, Math.max(8, Number(savedEvent.position?.x) || 50)),
+          y: Math.min(80, Math.max(12, Number(savedEvent.position?.y) || 42))
+        }
+      }
+      : null;
+
     return {
       inventory,
       timesGambled: Number(saved.timesGambled) || 0,
@@ -339,7 +360,8 @@ function loadGame() {
       buildings,
       robots,
       upgrades,
-      activeEffects
+      activeEffects,
+      goldenEvent
     };
   } catch (error) {
     console.error('Unable to load save', error);
@@ -381,6 +403,7 @@ function showToast(message) {
 
 // Refreshes sidebar statistics and active-effect information.
 function updateStats() {
+  document.body.classList.toggle('golden-event-active', isGoldenEventActive());
   document.getElementById('timesGambled').textContent = gameState.timesGambled;
   document.getElementById('rarestRolled').textContent = spinInProgress ? 'Revealing...' : gameState.rarestRolled;
   document.getElementById('timePlayed').textContent = formatPlayTime(getTimePlayedSeconds());
@@ -393,10 +416,96 @@ function updateStats() {
     ['Fortune Wax', gameState.activeEffects.fortune_wax_rolls]
   ];
 
+  if (isGoldenEventActive()) {
+    const event = getGoldenEventType();
+    entries.unshift([event.name, Math.ceil((gameState.goldenEvent.expiresAt - Date.now()) / 1000)]);
+  }
+
   buffList.innerHTML = entries
     .filter(([, value]) => value > 0)
-    .map(([name, value]) => `<li>${name}: ${value} rolls</li>`)
+    .map(([name, value]) => `<li>${name}: ${name === gameState.goldenEvent?.name ? `${value}s remaining` : `${value} rolls`}</li>`)
     .join('') || '<li>None</li>';
+}
+
+// Returns the configured event data for the current golden event.
+function getGoldenEventType() {
+  return GOLDEN_EVENT_TYPES.find((event) => event.name === gameState.goldenEvent?.name) || GOLDEN_EVENT_TYPES[0];
+}
+
+// Checks whether a collected golden event is still boosting the reactor.
+function isGoldenEventActive() {
+  return Boolean(gameState.goldenEvent?.active && gameState.goldenEvent.expiresAt > Date.now());
+}
+
+// Spawns a collectible short event in the research chamber.
+function spawnGoldenEvent(eventName = null, force = false) {
+  if (gameState.goldenEvent && !force) return;
+  const event = GOLDEN_EVENT_TYPES.find((candidate) => candidate.name === eventName)
+    || GOLDEN_EVENT_TYPES[Math.floor(Math.random() * GOLDEN_EVENT_TYPES.length)];
+  gameState.goldenEvent = {
+    name: event.name,
+    active: false,
+    spawnedAt: Date.now(),
+    expiresAt: Date.now() + 12000,
+    position: {
+      x: 8 + Math.random() * 80,
+      y: 12 + Math.random() * 68
+    }
+  };
+  renderGoldenEvent();
+  showToast(`${event.name} detected in the chamber.`);
+}
+
+// Collects the visible event and starts its timed reactor boost.
+function collectGoldenEvent() {
+  if (!gameState.goldenEvent || gameState.goldenEvent.active) return;
+  const event = getGoldenEventType();
+  gameState.goldenEvent.active = true;
+  gameState.goldenEvent.expiresAt = Date.now() + event.duration * 1000;
+  document.body.classList.add('golden-event-active');
+  showToast(`${event.name} collected: ${event.multiplier}x luck active.`);
+  renderAll();
+  saveGame();
+}
+
+// Keeps the event button and its countdown synchronized with game state.
+function renderGoldenEvent() {
+  const button = document.getElementById('goldenCookie');
+  if (!button) return;
+  const event = gameState.goldenEvent;
+  document.body.classList.toggle('golden-event-active', isGoldenEventActive());
+  if (!event || event.active || event.expiresAt <= Date.now()) {
+    if (!button.hidden && !button.classList.contains('golden-signal-disappearing')) {
+      button.classList.add('golden-signal-disappearing');
+      clearTimeout(goldenEventDismissTimer);
+      goldenEventDismissTimer = setTimeout(() => {
+        button.hidden = true;
+        button.classList.remove('golden-signal-disappearing');
+      }, 320);
+    }
+    return;
+  }
+  clearTimeout(goldenEventDismissTimer);
+  button.classList.remove('golden-signal-disappearing');
+  const eventType = getGoldenEventType();
+  button.hidden = false;
+  document.getElementById('goldenCookieTitle').textContent = eventType.name;
+  button.style.setProperty('--signal-x', `${event.position.x}vw`);
+  button.style.setProperty('--signal-y', `${event.position.y}vh`);
+  button.setAttribute('aria-label', `${eventType.name}: ${eventType.description}. ${Math.ceil((event.expiresAt - Date.now()) / 1000)} seconds to collect`);
+  document.getElementById('goldenCookieDescription').textContent = `${eventType.description} · ${Math.ceil((event.expiresAt - Date.now()) / 1000)}s to collect`;
+}
+
+// Advances event timing and schedules the next surprise after collection.
+function tickGoldenEvent() {
+  const event = gameState.goldenEvent;
+  if (event && event.expiresAt <= Date.now()) {
+    gameState.goldenEvent = null;
+    renderAll();
+    return;
+  }
+  if (!event && gameState.timesGambled > 0 && Math.random() < 0.018) spawnGoldenEvent();
+  renderGoldenEvent();
 }
 
 // Shows one application view and hides the others.
@@ -426,11 +535,12 @@ function canAfford(inventory, cost) {
 
 // Checks whether enough items exist in a tier-based material pool.
 function canAffordTierCost(inventory, tierCost) {
+  const requiredAmount = getDiscountedTierAmount(tierCost.amount);
   const available = TIER_ITEMS[tierCost.tier].reduce(
     (total, item) => total + (inventory[item] || 0),
     0
   );
-  return available >= tierCost.amount;
+  return available >= requiredAmount;
 }
 
 // Checks both direct and tier-based requirements for an upgrade.
@@ -448,7 +558,7 @@ function applyCost(inventory, cost) {
 
 // Removes a tier-pool cost from the available items.
 function applyTierCost(inventory, tierCost) {
-  let remaining = tierCost.amount;
+  let remaining = getDiscountedTierAmount(tierCost.amount);
   for (const item of TIER_ITEMS[tierCost.tier]) {
     const used = Math.min(inventory[item] || 0, remaining);
     inventory[item] -= used;
@@ -467,8 +577,20 @@ function applyUpgradeCost(inventory, upgrade, cost) {
 function formatCostItems(inventory, cost) {
   return Object.entries(cost).map(([item, amount]) => {
     const owned = (inventory[item] || 0) >= amount;
-    return `<span class="cost-item ${owned ? 'cost-item-owned' : 'cost-item-missing'}">${item} x${amount}</span>`;
+    return `<span class="cost-item ${owned ? 'cost-item-owned' : 'cost-item-missing'}">${getItemDisplayName(item)} x${amount}</span>`;
   }).join(', ');
+}
+
+// Applies the global beginner-friendly economy discount while keeping costs meaningful.
+function getDiscountedCost(cost) {
+  return Object.fromEntries(
+    Object.entries(cost).map(([item, amount]) => [item, Math.max(1, Math.ceil(amount * ECONOMY_COST_MULTIPLIER))])
+  );
+}
+
+// Discounts tier-pool requirements using the same economy rule as material costs.
+function getDiscountedTierAmount(amount) {
+  return Math.max(1, Math.ceil(amount * ECONOMY_COST_MULTIPLIER));
 }
 
 // Formats direct and tier-pool upgrade costs for display.
@@ -477,9 +599,9 @@ function formatUpgradeCost(inventory, upgrade, cost) {
   if (upgrade.tier_cost) {
     const tierItems = TIER_ITEMS[upgrade.tier_cost.tier].map((item) => {
       const owned = (inventory[item] || 0) > 0;
-      return `<span class="cost-item ${owned ? 'cost-item-owned' : 'cost-item-missing'}">${item}</span>`;
+      return `<span class="cost-item ${owned ? 'cost-item-owned' : 'cost-item-missing'}">${getItemDisplayName(item)}</span>`;
     }).join(', ');
-    exactCost.push(`any ${upgrade.tier_cost.amount} from ${upgrade.tier_cost.tier}: ${tierItems}`);
+    exactCost.push(`any ${getDiscountedTierAmount(upgrade.tier_cost.amount)} from ${upgrade.tier_cost.tier}: ${tierItems}`);
   }
   return exactCost.join(', ');
 }
@@ -497,17 +619,17 @@ function getUpgradeCost(key, level) {
   const earlyDiscount = UPGRADE_CATALOG[key].tier_cost
     ? 1
     : [0.5, 0.75, 1][level] || 1;
-  return Object.fromEntries(
+  return getDiscountedCost(Object.fromEntries(
     Object.entries(baseCost).map(([item, amount]) => [item, Math.max(1, Math.ceil(amount * (level + 1) * earlyDiscount))])
-  );
+  ));
 }
 
 // Calculates the next cost for a reactor building module.
 function getBuildingCost(key, level) {
   const baseCost = BUILDING_CATALOG[key].base_cost;
-  return Object.fromEntries(
+  return getDiscountedCost(Object.fromEntries(
     Object.entries(baseCost).map(([item, amount]) => [item, amount * (level + 1)])
-  );
+  ));
 }
 
 // Checks whether a building's prerequisite module is complete.
@@ -530,9 +652,10 @@ function getReactorBuildingLevel() {
 
 // Calculates the current maximum number of rolls per batch.
 function getMaxRolls() {
-  const baseMax = 5 + gameState.upgrades.bulk * 2 + gameState.prestigeRollRewards * 3;
+  const baseMax = 5 + gameState.upgrades.bulk * 2 + gameState.prestigeRollRewards * 6;
   const energyBonus = gameState.activeEffects.energy_drink_rolls > 0 ? 2 : 0;
-  return baseMax + energyBonus;
+  const goldenBonus = isGoldenEventActive() ? getGoldenEventType().maxRollBonus : 0;
+  return baseMax + energyBonus + goldenBonus;
 }
 
 // Calculates the current delay between roll animation phases.
@@ -555,6 +678,7 @@ function getTierWeights() {
     const rarity = getTierRarity(tier);
     let modifier = Math.pow(1 + luck * 0.025, rarity) * (1 + gameState.prestigeLuckRewards * 2);
     if (active.luck_potion_rolls > 0) modifier *= 3;
+    if (isGoldenEventActive()) modifier *= getGoldenEventType().multiplier;
     if (['1/32', '1/64', '1/128', '1/256', '1/512'].includes(tier)) {
       modifier *= 1 + jackpot * 0.25;
     }
@@ -572,7 +696,14 @@ function getPotionDuration() {
 // Renders all currently owned items and the inventory total.
 function showInventory() {
   const inventoryList = document.getElementById('inventoryList');
-  const entries = DISPLAY_ITEMS.filter((item) => (gameState.inventory[item] || 0) > 0);
+  const displayOrder = new Map(DISPLAY_ITEMS.map((item, index) => [item, index]));
+  const entries = DISPLAY_ITEMS
+    .filter((item) => (gameState.inventory[item] || 0) > 0)
+    .sort((left, right) => {
+      const leftRarity = getTierRarity(getTierForItem(left));
+      const rightRarity = getTierRarity(getTierForItem(right));
+      return rightRarity - leftRarity || displayOrder.get(left) - displayOrder.get(right);
+    });
 
   if (!entries.length) {
     inventoryList.innerHTML = '<div class="inventory-row"><span class="item-name">Your bag is empty.</span></div>';
@@ -581,12 +712,15 @@ function showInventory() {
 
   const total = entries.reduce((sum, item) => sum + gameState.inventory[item], 0);
   inventoryList.innerHTML = [
-    ...entries.map((item) => `
+    ...entries.map((item) => {
+      const rarityClass = getTierGlowClass(getTierRarity(getTierForItem(item)));
+      return `
       <div class="inventory-row">
-        <span class="item-name">${item}</span>
+        <span class="item-name ${rarityClass}">${getItemDisplayName(item)}</span>
         <span class="item-count">${gameState.inventory[item]}</span>
       </div>
-    `),
+    `;
+    }),
     `<div class="inventory-row"><span class="item-name">Total items collected</span><span class="item-count">${total}</span></div>`
   ].join('');
 }
@@ -596,9 +730,10 @@ function showCrafting() {
   const list = document.getElementById('craftingList');
   list.innerHTML = Object.entries(RECIPES)
     .map(([key, recipe]) => {
-      const affordable = canAfford(gameState.inventory, recipe.cost);
-      const recipeCost = formatCostItems(gameState.inventory, recipe.cost);
-      const recipeReward = Object.entries(recipe.reward).map(([item, amount]) => `${item} x${amount}`).join(', ');
+      const cost = getDiscountedCost(recipe.cost);
+      const affordable = canAfford(gameState.inventory, cost);
+      const recipeCost = formatCostItems(gameState.inventory, cost);
+      const recipeReward = Object.entries(recipe.reward).map(([item, amount]) => `${getItemDisplayName(item)} x${amount}`).join(', ');
       return `
         <div class="recipe-card ${affordable ? '' : 'unaffordable'}">
           <div class="recipe-header">
@@ -623,11 +758,12 @@ function showCrafting() {
       const key = Number(button.dataset.craft);
       const recipe = RECIPES[key];
       if (!recipe) return;
-      if (!canAfford(gameState.inventory, recipe.cost)) {
+      const cost = getDiscountedCost(recipe.cost);
+      if (!canAfford(gameState.inventory, cost)) {
         showToast('You do not have the required items.');
         return;
       }
-      applyCost(gameState.inventory, recipe.cost);
+      applyCost(gameState.inventory, cost);
       applyReward(gameState.inventory, recipe.reward);
       showToast(`Crafted ${recipe.name}!`);
       renderAll();
@@ -638,6 +774,11 @@ function showCrafting() {
 // Finds the loot tier containing a given item.
 function getTierForItem(itemName) {
   return Object.entries(TIER_ITEMS).find(([, items]) => items.includes(itemName))?.[0] || null;
+}
+
+// Gives every displayed item a consistent rarity or material label.
+function getItemDisplayName(itemName) {
+  return `${itemName} (${getTierForItem(itemName) || 'Material'})`;
 }
 
 // Generates a randomized bundle of lower-tier deconstruction rewards.
@@ -681,7 +822,7 @@ function showDeconstruction() {
     return `
       <div class="recipe-card deconstruct-card">
         <div class="recipe-header">
-          <span class="recipe-title">${item}</span>
+          <span class="recipe-title">${getItemDisplayName(item)}</span>
           <span class="muted">${tier} · x${count}</span>
         </div>
         <div class="meta">Deconstruct 1 unit into ${bundleSize} randomized items from lower tiers (${lowerRange}).</div>
@@ -706,9 +847,9 @@ function showDeconstruction() {
       applyReward(gameState.inventory, deconstruction.result);
       const summary = Object.entries(deconstruction.result)
         .slice(0, 3)
-        .map(([name, amount]) => `${name} x${amount}`)
+        .map(([name, amount]) => `${getItemDisplayName(name)} x${amount}`)
         .join(', ');
-      showToast(`Deconstructed ${item}: ${summary}${Object.keys(deconstruction.result).length > 3 ? ', and more.' : '.'}`);
+      showToast(`Deconstructed ${getItemDisplayName(item)}: ${summary}${Object.keys(deconstruction.result).length > 3 ? ', and more.' : '.'}`);
       renderAll();
     });
   });
@@ -837,7 +978,7 @@ function showUsables() {
     .map((item) => `
       <div class="usable-card">
         <div class="usable-header">
-          <span class="usable-title">${item}</span>
+          <span class="usable-title">${getItemDisplayName(item)}</span>
           <span class="muted">x${gameState.inventory[item]}</span>
         </div>
         <div class="meta">${USABLES[item].description}</div>
@@ -866,7 +1007,7 @@ function getPrestigeRequirement() {
   return {
     totalItems: PRESTIGE_ITEM_REQUIREMENT * Math.pow(gameState.prestige + 1, 2),
     rareTier: rareTiers[Math.min(gameState.prestige, rareTiers.length - 1)],
-    rareAmount: 2 + Math.floor(gameState.prestige / 3)
+    rareAmount: Math.max(1, 1 + Math.floor(gameState.prestige / 4))
   };
 }
 
@@ -928,11 +1069,11 @@ async function prestige() {
   prestigeConfirmOverlay.classList.remove('visible');
   document.body.classList.add('prestige-transition-active');
   prestigeTransition.classList.add('active');
-  await new Promise((resolve) => setTimeout(resolve, 1800));
+  await new Promise((resolve) => setTimeout(resolve, 2600));
 
   gameState.prestige += 1;
-  gameState.prestigeLuckRewards += 1;
-  gameState.prestigeRollRewards += 1;
+  gameState.prestigeLuckRewards += 2;
+  gameState.prestigeRollRewards += 2;
   resetRunAfterPrestige();
   saveGame();
   showToast(`Prestige ${gameState.prestige} complete. Your run has been reborn.`);
@@ -973,35 +1114,49 @@ function showPrestige() {
     </div>
     <div class="prestige-bonuses">
       <div><strong>Luck</strong><span>+${gameState.prestigeLuckRewards * 200}% tier weight</span></div>
-      <div><strong>Base rolls</strong><span>+${gameState.prestigeRollRewards * 3} rolls</span></div>
+      <div><strong>Base rolls</strong><span>+${gameState.prestigeRollRewards * 6} rolls</span></div>
     </div>
     <div class="prestige-rewards">
       <button class="prestige-reward prestige-confirm ${canPrestige ? '' : 'disabled'}" data-prestige="confirm" ${canPrestige ? '' : 'disabled'}>
-        <strong>+200% Luck</strong>
-        <span>Triple tier weights and add <strong>+3 base rolls</strong> for every future run.</span>
+        <strong>+400% Luck</strong>
+        <span>Massively boost tier weights and add <strong>+6 base rolls</strong> for every future run.</span>
         <em>Prestige and claim both rewards</em>
       </button>
     </div>
     ${isMaxed ? '<p class="prestige-complete">Maximum prestige reached.</p>' : '<p class="prestige-warning">Prestiging resets inventory, upgrades, robots, effects, and run statistics.</p>'}
+    <div class="prestige-reset-zone">
+      <span>Wanna copmletely start over?</span>
+      <button class="menu-button danger prestige-reset-button" type="button" data-prestige-reset>Reset Progress</button>
+    </div>
   `;
-
+  
   panel.querySelectorAll('[data-prestige]').forEach((button) => {
     button.addEventListener('click', () => showPrestigeConfirmation());
   });
+  panel.querySelector('[data-prestige-reset]').addEventListener('click', resetProgress);
+}
+
+// Clears every saved system after explicit confirmation.
+function resetProgress() {
+  if (!window.confirm('Reset all progress? This permanently clears inventory, upgrades, prestige, buildings, robots, and statistics.')) return;
+  localStorage.removeItem(SAVE_KEY);
+  sessionStorage.clear();
+  automationTimers.forEach((timer) => clearInterval(timer));
+  window.location.reload();
 }
 
 // Calculates a robot's summon interval from its level.
 function getRobotInterval(level) {
-  return Math.max(1, 31 - level);
+  return Math.max(0.35, 10 - level * 0.32);
 }
 
 // Calculates the material cost for the next robot level.
 function getRobotUpgradeCost(level) {
-  return {
+  return getDiscountedCost({
     'Quantum Battery': Math.max(1, level),
     'Particle Lens': Math.max(1, Math.ceil(level / 2)),
     'Muon Detector': Math.max(1, Math.ceil(level / 3))
-  };
+  });
 }
 
 // Renders robot slots and wires robot purchase and upgrade actions.
@@ -1011,7 +1166,7 @@ function showAutomation() {
   panel.className = 'status-card automation-ready';
   panel.innerHTML = `
     <h3>Quantum Summoner Robots: ${activeRobots}/${ROBOT_SLOT_COUNT} online</h3>
-    <p class="muted">Buy robots in any slot. Each robot summons independently, starting at one summon every 30 seconds. Level 30 reaches one summon per second.</p>
+    <p class="muted">Buy robots in any slot. Each robot summons independently, starting at one summon about every 10 seconds. Level 30 reaches 2-3 summons per second.</p>
     <div class="robot-grid">
       ${gameState.robots.map((level, index) => {
         if (!level) {
@@ -1020,7 +1175,7 @@ function showAutomation() {
               <strong>Slot ${index + 1}</strong>
               <span class="muted">Empty</span>
               <button class="action-button" data-buy-robot="${index}">Buy Robot</button>
-              <small>Cost: ${formatCostItems(gameState.inventory, ROBOT_BUY_COST)}</small>
+              <small>Cost: ${formatCostItems(gameState.inventory, getDiscountedCost(ROBOT_BUY_COST))}</small>
             </div>
           `;
         }
@@ -1050,8 +1205,9 @@ function showAutomation() {
   panel.querySelectorAll('[data-buy-robot]').forEach((button) => {
     button.addEventListener('click', () => {
       const index = Number(button.dataset.buyRobot);
-      if (gameState.robots[index] > 0 || !canAfford(gameState.inventory, ROBOT_BUY_COST)) return;
-      applyCost(gameState.inventory, ROBOT_BUY_COST);
+      const cost = getDiscountedCost(ROBOT_BUY_COST);
+      if (gameState.robots[index] > 0 || !canAfford(gameState.inventory, cost)) return;
+      applyCost(gameState.inventory, cost);
       gameState.robots[index] = 1;
       showToast(`Robot ${index + 1} online.`);
       startAutomation();
@@ -1351,19 +1507,19 @@ async function rollAnimation(results) {
   status.textContent = 'Revealed';
   revealInProgress = false;
   skipRevealRequested = false;
-  const settleDuration = Math.min(3200, 700 + maxRarity * 120);
+  const settleDuration = Math.min(1400, 500 + maxRarity * 55);
   stage.style.setProperty('--settle-duration', `${settleDuration}ms`);
   stage.classList.add('cooling-down');
   await new Promise((resolve) => setTimeout(resolve, settleDuration));
   stage.classList.add('returning-idle');
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  await new Promise((resolve) => setTimeout(resolve, 220));
   overlay.classList.remove('active');
   stage.classList.add('idle-fade-in');
   stage.classList.remove('summoning');
   stage.classList.remove('cooling-down');
   stage.classList.remove('returning-idle');
   portalGlow.className = 'portal-glow';
-  await new Promise((resolve) => setTimeout(resolve, 900));
+  await new Promise((resolve) => setTimeout(resolve, 180));
   output.classList.remove('sequential-reveal');
   stage.classList.remove('idle-fade-in');
   document.body.classList.remove('global-summon', glowClass);
@@ -1572,6 +1728,7 @@ function renderAll() {
     updateReactorAppearance();
   notifyAffordableUpgradeIfNeeded();
   updateSpinButtonState();
+  renderGoldenEvent();
 }
 
 menuButtons.forEach((button) => {
@@ -1617,6 +1774,8 @@ document.getElementById('rollOutput').addEventListener('click', () => {
   skipRevealRequested = true;
 });
 
+document.getElementById('goldenCookie').addEventListener('click', collectGoldenEvent);
+
 document.getElementById('saveNowButton').addEventListener('click', () => {
   saveGame();
 });
@@ -1645,5 +1804,6 @@ showTutorialIfNeeded();
 setInterval(() => {
   updateStats();
   showAutomation();
+  tickGoldenEvent();
 }, 1000);
 startAutomation();
