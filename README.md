@@ -2,6 +2,10 @@
 
 ParticleRNG is an Electron (chromium-based) game about researching particles, collecting increasingly rare materials, and improving a reactor to reach the highest forms of particle research.
 
+## Game Screenshot
+
+![ParticleRNG game screenshot](game-ss.png)
+
 ## How the game works
 
 1. Open **Research** and click the reactor particle to roll for a reward.
