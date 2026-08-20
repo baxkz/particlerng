@@ -4,9 +4,18 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "package:mac": "npx --yes electron-packager . ParticleRNG --platform=darwin --icon=assets/ParticleRNG.icns --overwrite --out=releases --ignore='^/releases($|/)' --ignore='^/old-python($|/)'"
+    "open:android": "CAPACITOR_ANDROID_STUDIO_PATH=\"/Users/stu57004/Applications/Android Studio.app\" npx cap open android",
+    "sync:android": "cp main/index.html main/style.css main/script.js main/admin.js www/ && npx cap sync android",
+    "build:apk": "npm run sync:android && cd android && ./gradlew assembleDebug && cd .. && mkdir -p releases && cp android/app/build/outputs/apk/debug/app-debug.apk releases/ParticleRNG-debug.apk",
+    "package:mac": "npx --yes electron-packager . ParticleRNG --platform=darwin --icon=assets/ParticleRNG.icns --overwrite --out=releases --ignore='^/releases($|/)' --ignore='^/old-python($|/)'",
+    "build:all": "npm run sync:android && npm run package:mac && cd android && ./gradlew assembleDebug && cd .. && mkdir -p releases && cp android/app/build/outputs/apk/debug/app-debug.apk releases/ParticleRNG-debug.apk"
   },
   "devDependencies": {
     "electron": "^43.4.1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.5.0"
   }
 }
