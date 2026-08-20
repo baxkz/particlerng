@@ -44,6 +44,26 @@ npm start
 
 `npm start` launches the Electron window using the root `main.js` process and the web game files in `main/`.
 
+## Load the game in a browser
+
+The browser version uses `main/index.html` as its entry point. For a quick local test on macOS, open it directly:
+
+```bash
+open main/index.html
+```
+
+You can also open `main/index.html` from Finder or drag it into a browser window. The `style.css`, `script.js`, and `admin.js` files are loaded from the same `main/` folder.
+
+For a local web server, which is useful when testing browser behavior, run this from the project directory:
+
+```bash
+python3 -m http.server 8080 --directory main
+```
+
+Then visit [http://localhost:8080](http://localhost:8080) in a browser. Stop the server with `Ctrl+C`.
+
+Browser saves use `localStorage` for the local file or localhost origin. They are separate from saves created by the Electron or Android builds.
+
 ## Build the macOS app
 
 Run:
