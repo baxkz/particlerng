@@ -1,0 +1,2 @@
+ - add "golden cookie" style short events, with 7x for around 1:30m multipliers, up to 777x for 7 seconds, and some "cookies" give  significant max roll increases, but the cookie aspect will change
+ - the large text that overlays when rolling a rare item takes too long to dissapear when the result pops up in the terminal box, this should only take a maximum of >3 seconds
